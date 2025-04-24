@@ -10,3 +10,6 @@ python-jose[cryptography]
 uuid
 inference_sdk
 python-multipart
+slowapi
+jose
+httpx
