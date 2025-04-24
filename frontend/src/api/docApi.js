@@ -16,7 +16,7 @@ const documentApi = {
 
   // Sends the signed document, signature, and public key to the backend
   sendSignedDocument: async (formData) => {
-    const res = await interceptor.post("/doc/verify-doc", formData, {
+    const res = await interceptor.post("/documents/verify-doc", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },

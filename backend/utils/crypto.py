@@ -9,18 +9,18 @@ def hash_data(data: bytes) -> bytes:
     return digest.finalize()
 
 # Generate keypair (you can use this to create sender keys once)
-def generate_key_pair():
-    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    private_bytes = private_key.private_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.TraditionalOpenSSL,
-        encryption_algorithm=serialization.NoEncryption()
-    )
-    public_bytes = private_key.public_key().public_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo
-    )
-    return private_bytes, public_bytes
+# def generate_key_pair():
+#     private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+#     private_bytes = private_key.private_bytes(
+#         encoding=serialization.Encoding.PEM,
+#         format=serialization.PrivateFormat.TraditionalOpenSSL,
+#         encryption_algorithm=serialization.NoEncryption()
+#     )
+#     public_bytes = private_key.public_key().public_bytes(
+#         encoding=serialization.Encoding.PEM,
+#         format=serialization.PublicFormat.SubjectPublicKeyInfo
+#     )
+#     return private_bytes, public_bytes
 
 # Sign data
 def sign_data(data: bytes, private_key_pem: bytes) -> str:

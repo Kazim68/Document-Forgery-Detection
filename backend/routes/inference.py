@@ -1,6 +1,7 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Request
 from fastapi.responses import JSONResponse
 from inference_sdk import InferenceHTTPClient
+from utils.rate_limiter import limiter
 import shutil
 import os
 import uuid
@@ -16,7 +17,8 @@ CLIENT = InferenceHTTPClient(
 )
 
 @router.post("/scan")
-async def scan_document(image: UploadFile = File(...), current_user=Depends(get_current_user)):
+@limiter.limit("5/minute")  # Allow max 5 logins per minute per IP
+async def scan_document(request: Request, image: UploadFile = File(...), current_user=Depends(get_current_user)):
     # Validate file type
     if not image.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Only image files are allowed.")

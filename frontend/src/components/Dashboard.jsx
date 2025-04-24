@@ -10,8 +10,13 @@ import {
     signData,
     exportPublicKey,
     hashBuffer,
-    arrayBufferToBase64
+    arrayBufferToBase64,
+    encryptWithPublicKey,
+    importPublicKey,
 } from "../utils/crypto";
+import ReCAPTCHA from 'react-google-recaptcha';
+import useRecaptcha from './UseRecaptcha';
+import { verifyRecaptcha } from '../api/captcha.js';
 
 const Dashboard = () => {
     const [file, setFile] = useState(null);
@@ -20,6 +25,7 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(false);
     const [displaySize, setDisplaySize] = useState({ width: 1, height: 1 });
     const [threshold, setThreshold] = useState(0.5); // default: 50%
+    const { capchaToken, recaptchaRef, handleRecaptcha } = useRecaptcha();
 
     const dispatch = useDispatch();
     const navigate = useNavigate();
@@ -50,6 +56,18 @@ const Dashboard = () => {
     const handleScan = async () => {
         if (!file) {
             toast.error("Please upload a document image first.");
+            return;
+        }
+
+        if (!capchaToken) {
+            toast.error("Please complete the reCAPTCHA.");
+            return;
+        }
+        // verify on backend
+        try {
+            await verifyRecaptcha(capchaToken);
+        } catch (err) {
+            toast.error("reCAPTCHA failed verification.");
             return;
         }
 
@@ -90,18 +108,18 @@ const Dashboard = () => {
                 return;
             }
 
-            console.log('here')
 
             // Step 6: Proceed to scan the doc using ML model
             const scanResult = await docApi.scanDocument(file);
-            setResult(scanResult);
+            setResult(scanResult.data);
+            console.log("Scan Result:", result);
             toast.success("Document scanned successfully!");
 
-            console.log("Scanned Result:", scanResult);
+            console.log("Scanned Result:", scanResult.data);
             console.log("Verified Hash:", hash);
             console.log("Signature:", base64Signature);
 
-            // ✅ Optionally: Send `hash`, `signature`, and `publicKey` to backend for storage
+
 
         } catch (error) {
             console.error("Error:", error);
@@ -113,14 +131,16 @@ const Dashboard = () => {
 
 
     return (
-        <div className="min-h-screen bg-[#0d1117] text-white flex flex-col items-center py-10 px-4">
-            <h1 className="text-3xl font-bold mb-6 text-[#c9d1d9]">Document Forgery Detection</h1>
+        <div className="min-h-screen bg-[#0d1117] text-white flex flex-col items-center py-10 px-4 relative">
+            {/* Sign Out Button - Top Right */}
             <button
                 onClick={handleSignOut}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition"
+                className="absolute top-6 right-6 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition"
             >
                 Sign Out
             </button>
+
+            <h1 className="text-3xl font-bold mb-6 text-[#c9d1d9]">Document Forgery Detection</h1>
 
             <div className="bg-[#161b22] border border-[#30363d] rounded-lg p-6 w-full max-w-2xl shadow-lg">
                 <input
@@ -192,16 +212,25 @@ const Dashboard = () => {
                                                 height: `${boxHeight}%`,
                                             }}
                                         >
-                                            <div className="absolute -top-5 left-0 bg-[#0d1117] text-red-400 font-semibold px-2 py-0.5 rounded shadow-lg">
-                                                {(prediction.confidence * 100).toFixed(1)}%
-
+                                            <div className="absolute -top-6 left-0 bg-red-600 text-white text-xs font-semibold px-2 py-1 rounded shadow-md z-50">
+                                                Forgery: {(prediction.confidence * 100).toFixed(1)}%
                                             </div>
+
                                         </motion.div>
                                     );
                                 })}
                         </div>
                     </>
                 )}
+
+                <div className="flex justify-center">
+                    <ReCAPTCHA
+                        ref={recaptchaRef}
+                        sitekey={import.meta.env.VITE_SITE_KEY}
+                        onChange={handleRecaptcha}
+                        theme="dark"
+                    />
+                </div>
 
 
                 <button
@@ -212,20 +241,30 @@ const Dashboard = () => {
                     {loading ? "Scanning..." : "Scan Document"}
                 </button>
 
-                {result && (
-                    <div className="mt-6 text-[#c9d1d9]">
-                        <h3 className="text-xl font-semibold mb-2">Scan Result:</h3>
-                        <pre className="bg-[#0d1117] border border-[#30363d] rounded-md p-4 overflow-auto text-sm text-[#c9d1d9] whitespace-pre-wrap">
-                            {JSON.stringify(result, null, 2)}
-                        </pre>
+                {/* Summary Box */}
+                {result?.predictions?.length > 0 && (
+                    <div className="mt-6 bg-[#161b22] p-4 rounded-md border border-[#30363d] text-[#c9d1d9] shadow">
+                        <h3 className="text-lg font-semibold mb-2">Scan Summary</h3>
+                        <p>
+                            {result.predictions.filter(p => p.confidence >= threshold).length} forgery region(s) detected above{" "}
+                            {(threshold * 100).toFixed(0)}% confidence threshold.
+                        </p>
+                        <p>
+                            Highest confidence:{" "}
+                            <span className="text-green-400 font-semibold">
+                                {(Math.max(...result.predictions.map(p => p.confidence)) * 100).toFixed(1)}%
+                            </span>
+                        </p>
                     </div>
                 )}
 
-                {result?.predictions?.length === 0 && (
+                {/* No results */}
+                {result?.predictions?.filter(p => p.confidence >= threshold).length === 0 && (
                     <p className="text-center text-sm text-[#8b949e] mt-4">
-                        No forgery detected.
+                        No forgery detected above the selected threshold.
                     </p>
                 )}
+
             </div>
         </div>
     );

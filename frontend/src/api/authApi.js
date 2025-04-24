@@ -24,7 +24,7 @@ const authApi = {
   resendOtp: async (email) => {
     const res = await axios.post(`${API_BASE_URL}/auth/resend-otp`, { email });
     return res.data;
-  }
+  },  
 };
 
 export default authApi;

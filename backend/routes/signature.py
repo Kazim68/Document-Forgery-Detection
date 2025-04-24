@@ -1,18 +1,22 @@
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, Request
 from odmantic import AIOEngine
 from db.connect import engine
 from models.document import Document
 from utils.crypto import hash_data, verify_signature
+from utils.asymmetricKeys import get_private_key
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 import base64
 import os
 from datetime import datetime
+from utils.rate_limiter import limiter
 
 router = APIRouter()
 
 @router.post("/verify-doc")
+@limiter.limit("5/minute")  # Allow max 5 logins per minute per IP
 async def verify_signed_doc(
+    request: Request,
     image: UploadFile = File(...),
     signature: str = Form(...),
     publicKey: str = Form(...)

@@ -1,10 +1,13 @@
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr
 from models.user import User
 from db.connect import engine
 from utils.auth import hash_password, verify_password, create_access_token, decode_token
-from utils.sendEmail import send_email
+from utils.sendEmail import send_email, EmailSendError
+from utils.asymmetricKeys import get_public_key_pem
+from utils.validations import validate_name
+from utils.rate_limiter import limiter
 
 import random
 from datetime import datetime, timedelta
@@ -45,10 +48,13 @@ class ResendOTPRequest(BaseModel):
     email: EmailStr
 
 @router.post("/register", response_model=NormalResponse)
-async def register_user(data: RegisterRequest):
+@limiter.limit("5/minute")  # Allow max 5 logins per minute per IP
+async def register_user(request: Request, data: RegisterRequest):
     existing = await engine.find_one(User, User.email == data.email)
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
+    
+    validate_name(data.name)
 
     hashed = hash_password(data.password)
     otp = f"{random.randint(100000, 999999)}"
@@ -58,16 +64,25 @@ async def register_user(data: RegisterRequest):
     user = User(name=data.name, email=data.email, hashed_password=hashed, otp_code=otp, otp_expires_at=otp_expiry)
     await engine.save(user)
 
-    await send_email(
-        to=user.email,
-        subject="Verify your email",
-        body=f"Your verification code is: {otp}"
-    )
+    try:
+        await send_email(
+            to=user.email,
+            subject="Verify your email",
+            body=f"Your verification code is: {otp}"
+        )
+    except EmailSendError as e:
+        # Rollback user if email fails
+        await engine.delete(user)
+        raise HTTPException(status_code=500, detail="Email sending failed. Please use a valid email.")
+
 
     return {"success": True, "message": "Registration successful. Please verify your email."}
 
-@router.post("/login", response_model=AuthResponse)
-async def login_user(data: LoginRequest):
+
+
+@router.post("/login")
+@limiter.limit("5/minute")  # Allow max 5 logins per minute per IP
+async def login_user(request: Request, data: LoginRequest):
     user = await engine.find_one(User, User.email == data.email)
     if not user or not verify_password(data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
@@ -78,12 +93,14 @@ async def login_user(data: LoginRequest):
     token = create_access_token(data={"sub": user.email})
     return {
         "access_token": token,
-        "user": {"name": user.name, "email": user.email, "role": user.role}
+        "user": {"name": user.name, "email": user.email, "role": user.role},
+        "public_key": get_public_key_pem()
     }
 
 
 @router.post("/verify-email", response_model=NormalResponse)
-async def verify_email(data: OTPVerifyRequest):
+@limiter.limit("5/minute")  # Allow max 5 logins per minute per IP
+async def verify_email(request: Request, data: OTPVerifyRequest):
     user = await engine.find_one(User, User.email == data.email)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -107,7 +124,8 @@ async def verify_email(data: OTPVerifyRequest):
 
 
 @router.post("/resend-otp", response_model=NormalResponse)
-async def resend_otp(data: ResendOTPRequest):
+@limiter.limit("5/minute")  # Allow max 5 logins per minute per IP
+async def resend_otp(request: Request, data: ResendOTPRequest):
     user = await engine.find_one(User, User.email == data.email)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")

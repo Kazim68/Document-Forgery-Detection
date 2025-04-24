@@ -61,6 +61,8 @@ const initialState = {
   error: null,
   otpVerified: false,
   otpResent: false,
+  publicKey: null,
+
 };
 
 const authSlice = createSlice({
@@ -98,6 +100,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload.user;
         state.token = action.payload.access_token;
+        state.publicKey = action.payload.public_key;
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;

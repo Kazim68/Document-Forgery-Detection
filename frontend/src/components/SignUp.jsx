@@ -3,11 +3,15 @@ import { useDispatch, useSelector } from 'react-redux';
 import { registerUser } from '../redux/authSlice';
 import { toast } from 'react-toastify';
 import { Link, useNavigate } from "react-router-dom";
+import ReCAPTCHA from 'react-google-recaptcha';
+import useRecaptcha from './UseRecaptcha';
+import { verifyRecaptcha } from '../api/captcha.js';
 
 const SignUp = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const { loading, error } = useSelector((state) => state.auth);
+    const { capchaToken, recaptchaRef, handleRecaptcha } = useRecaptcha();
 
     const [formData, setFormData] = useState({
         name: '',
@@ -21,6 +25,19 @@ const SignUp = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (!capchaToken) {
+            toast.error("Please complete the reCAPTCHA.");
+            return;
+        }
+        // verify on backend
+        try {
+            await verifyRecaptcha(capchaToken);
+        } catch (err) {
+            toast.error("reCAPTCHA failed verification.");
+            return;
+        }
+
         const resultAction = await dispatch(registerUser(formData));
         if (registerUser.fulfilled.match(resultAction)) {
             localStorage.setItem('email', formData.email);
@@ -65,6 +82,15 @@ const SignUp = () => {
                         required
                         className="px-4 py-3 rounded-md bg-[#0d1117] border border-[#30363d] text-[#c9d1d9] focus:outline-none focus:border-[#1f6feb]"
                     />
+
+                    <div className="flex justify-center">
+                        <ReCAPTCHA
+                            ref={recaptchaRef}
+                            sitekey={import.meta.env.VITE_SITE_KEY}
+                            onChange={handleRecaptcha}
+                            theme="dark"
+                        />
+                    </div>
 
                     <button
                         type="submit"

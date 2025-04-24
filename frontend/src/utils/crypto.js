@@ -38,3 +38,31 @@ export function arrayBufferToBase64(buffer) {
     const bytes = new Uint8Array(buffer);
     return btoa(String.fromCharCode(...bytes));
 }
+
+export async function importPublicKey(pem) {
+    if (typeof pem !== "string") {
+        throw new Error("Public key PEM must be a string");
+    }
+    
+    const raw = window.atob(pem.replace(/-----BEGIN PUBLIC KEY-----|-----END PUBLIC KEY-----|\n/g, ""));
+    const binary = new Uint8Array([...raw].map(c => c.charCodeAt(0)));
+
+    return await window.crypto.subtle.importKey(
+        "spki",
+        binary.buffer,
+        {
+            name: "RSA-OAEP",
+            hash: "SHA-256",
+        },
+        false,
+        ["encrypt"]
+    );
+}
+
+export async function encryptWithPublicKey(dataBuffer, publicKey) {
+    return await window.crypto.subtle.encrypt(
+        { name: "RSA-OAEP" },
+        publicKey,
+        dataBuffer
+    );
+}

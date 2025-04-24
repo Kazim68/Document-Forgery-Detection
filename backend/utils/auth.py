@@ -35,7 +35,7 @@ def decode_token(token: str):
         return payload.get("sub")
     except JWTError:
         return None
-
+    
 async def get_current_user(authorization: str = Header(...)):
     print('here')
     token = authorization
