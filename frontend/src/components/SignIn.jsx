@@ -4,7 +4,7 @@ import { loginUser } from '../redux/authSlice';
 import { toast } from 'react-toastify';
 import { Link, useNavigate } from "react-router-dom";
 import ReCAPTCHA from 'react-google-recaptcha';
-import useRecaptcha from './UseRecaptcha';
+import useRecaptcha from './UseRecaptcha.jsx';
 import { verifyRecaptcha } from '../api/captcha.js';
 
 const SignUp = () => {
