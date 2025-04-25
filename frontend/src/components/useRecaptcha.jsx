@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import ReCAPTCHA from 'react-google-recaptcha';
 
-const useRecaptcha = () => {
+const UseRecaptcha = () => {
   const [capchaToken, setCapchaToken] = useState('');
   const recaptchaRef = useRef(null);
 
@@ -33,4 +33,4 @@ const useRecaptcha = () => {
   return { capchaToken, setCapchaToken, recaptchaRef, handleRecaptcha };
 };
 
-export default useRecaptcha;
+export default UseRecaptcha;
