@@ -15,7 +15,7 @@ import {
     importPublicKey,
 } from "../utils/crypto";
 import ReCAPTCHA from 'react-google-recaptcha';
-import useRecaptcha from './UseRecaptcha';
+import useRecaptcha from './UseRecaptcha.jsx';
 import { verifyRecaptcha } from '../api/captcha.js';
 
 const Dashboard = () => {
