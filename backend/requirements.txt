@@ -13,3 +13,4 @@ python-multipart
 slowapi
 jose
 httpx
+opencv-python-headless
