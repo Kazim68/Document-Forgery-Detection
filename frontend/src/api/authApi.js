@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://127.0.0.1:8000"; // Replace with your backend URL
+const API_BASE_URL = "https://shy-kathy-kazim68-5d662330.koyeb.app"; // Replace with your backend URL
 
 const authApi = {
   register: async (userData) => {

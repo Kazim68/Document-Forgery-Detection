@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { store } from '../redux/store.js';
 
-const BASE_URL = 'http://localhost:8000'; // or your deployed URL
+const BASE_URL = 'https://shy-kathy-kazim68-5d662330.koyeb.app'; // or your deployed URL
 
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
