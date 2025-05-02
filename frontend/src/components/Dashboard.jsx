@@ -25,7 +25,7 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(false);
     const [displaySize, setDisplaySize] = useState({ width: 1, height: 1 });
     const [threshold, setThreshold] = useState(0.5); // default: 50%
-    const { capchaToken, recaptchaRef, handleRecaptcha } = useRecaptcha();
+    const { capchaToken, recaptchaRef, handleRecaptcha, resetCaptcha } = useRecaptcha();
 
     const dispatch = useDispatch();
     const navigate = useNavigate();
@@ -126,6 +126,7 @@ const Dashboard = () => {
             toast.error(error.response?.data?.detail || "Scan failed.");
         } finally {
             setLoading(false);
+            resetCaptcha(); 
         }
     };
 

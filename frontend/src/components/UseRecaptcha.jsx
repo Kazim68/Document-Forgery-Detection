@@ -9,6 +9,13 @@ const UseRecaptcha = () => {
     setCapchaToken(token || '');
   }, []);
 
+  const resetCaptcha = useCallback(() => {
+    if (recaptchaRef.current) {
+      recaptchaRef.current.reset();
+      setCapchaToken('');
+    }
+  }, []);
+
   useEffect(() => {
     const refreshCaptcha = () => {
       if (recaptchaRef.current && capchaToken) {
@@ -30,7 +37,7 @@ const UseRecaptcha = () => {
     };
   }, [capchaToken]);
 
-  return { capchaToken, setCapchaToken, recaptchaRef, handleRecaptcha };
+  return { capchaToken, setCapchaToken, recaptchaRef, handleRecaptcha, resetCaptcha };
 };
 
 export default UseRecaptcha;
